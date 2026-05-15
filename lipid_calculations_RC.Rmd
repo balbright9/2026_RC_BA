@@ -1,0 +1,61 @@
+```{r set up}
+
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("palmerpenguins")) install.packages("palmerpenguins")
+if (!require("nycflights13")) install.packages("nycflights13")
+if (!require("rstudioapi")) install.packages("rstudioapi")
+if (!require("readxl")) install.packages("readxl")
+if (!require("ggthemes")) install.packages("ggthemes")
+if (!require("readxl")) install.packages("readxl")
+if (!require("babynames")) install.packages("babynames")
+if (!require("words")) install.packages("words")
+
+#library loadings
+library(tidyverse)
+library(palmerpenguins)
+library(rstudioapi)
+library(nycflights13)
+library(readxl)
+library(ggthemes)
+library(babynames)
+library(words)
+
+#setting a working directory
+#following command assumes you have rstudioapi installed/loaded and sets working directory to script directory
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+getwd()
+
+```
+```{r code}
+
+#load google sheet data
+library(googlesheets4)
+
+read_sheet('https://docs.google.com/spreadsheets/d/1vsN_TfIDOMNZ5XoZhZQXl85cQ-jBGmAAA6zNoIMIwVI/edit?usp=sharing')
+lipid_513<-read_sheet('https://docs.google.com/spreadsheets/d/1vsN_TfIDOMNZ5XoZhZQXl85cQ-jBGmAAA6zNoIMIwVI/edit?usp=sharing')
+
+#standard curve plot
+ggplot(lipid_513, aes(x=ug_oil_standards_dup, y=Abs_oil_standards_dup))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title='Lipid Standard Curve', x='lipid_ug', y='Absorbance')
+
+
+#object of standard curve for values
+standard_curve<-lm(Abs_oil_standards_dup ~ ug_oil_standards_dup, data=lipid_513)
+
+#command to produce slope and intercept
+coefficients(standard_curve)
+intercept <- coef(standard_curve)[1]
+slope <- coef(standard_curve)[2]
+  
+#r squared value
+summary(standard_curve)$r.squared 
+
+#calculate actual protein values
+lipid_513_means <- lipid_513 |> mutate(samples_abs_avg = (samples_a+samples_b)/2) |>
+  mutate(ug_lipid_samples = (samples_abs_avg - intercept )/slope)
+
+```
+
+
