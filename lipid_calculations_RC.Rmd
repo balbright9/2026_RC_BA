@@ -41,6 +41,10 @@ ggplot(lipid_513, aes(x=ug_oil_standards_dup, y=Abs_oil_standards_dup))+
   labs(title='Lipid Standard Curve', x='lipid_ug', y='Absorbance')
 
 
+
+
+
+
 #object of standard curve for values
 standard_curve<-lm(Abs_oil_standards_dup ~ ug_oil_standards_dup, data=lipid_513)
 
@@ -58,4 +62,64 @@ lipid_513_means <- lipid_513 |> mutate(samples_abs_avg = (samples_a+samples_b)/2
 
 ```
 
+```{r dave code}
+#original standard curve plot
+ggplot(lipid_513, aes(x=ug_oil_standards_dup, y=Abs_oil_standards_dup))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title='Lipid Standard Curve', x='lipid_ug', y='Absorbance')
+
+## your top standards are oversaturated
+
+##create new dataframe for your standard curve
+
+## your top standards are oversaturated
+
+##create new dataframe for your standard curve
+
+stds <- as_tibble(lipid_513[,1:2])
+
+##select lower-range standards
+stds_inrange <- stds |>
+  filter(Abs_oil_standards_dup < 3)
+
+##create standard curve object
+stds_fit <- 
+  lm(Abs_oil_standards_dup ~ ug_oil_standards_dup, data = stds_inrange)
+
+sm_lm <- summary(stds_fit)
+
+##coefficient and intercept
+
+m = stds_fit$coefficients[2]
+b = stds_fit$coefficients[1]
+rsquare = sm_lm$r.squared
+
+##plot
+ggplot(stds_inrange, aes(x=ug_oil_standards_dup, y=Abs_oil_standards_dup)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title='Lipid Standard Curve', x='lipid_ug', y='Absorbance') +
+  annotate("text", x = 150, y = 2.0, label = paste0("rsquare=",round(rsquare,3)))
+
+##create df of unknowns with means
+unk <- lipid_513 |>
+  select(samples_a,samples_b,ID) |>
+  rowwise()|>
+  mutate(mean_sample = mean(c_across(samples_a:samples_b), na.rm = TRUE)) |>
+  ungroup() 
+
+##extract blank OD
+blank <- unk |>
+  filter(ID == "BLANK1") |>
+  pull(mean_sample)
+
+unk_calc <- unk |> ##calculate lipid ug from fit
+  mutate(calc_sample = (mean_sample-b)/m,
+         calc_sample_blanked = (mean_sample-blank-b)/m ##adjust for blank
+         )
+
+##this works better if unique identifiers were provided within the original lipid513 sheet
+
+```
 
